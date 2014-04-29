@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <Eigen/Dense>
+#include "Eigen/Dense"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -21,21 +21,30 @@ using namespace Eigen;
 std::vector<Vector3f> points;
 float counter = 0;
 
-void myDisplay() {
+void init() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glLoadIdentity();
   
-  GLfloat light_position[] = { 1.0, 1.0, -1.0, 0.0 };
+  glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
+  glOrtho(-1, 1, -1, 1, -100, 100);
+
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+
+  GLfloat light_position[] = { 1.0, 1.0, -1.0, 0.0 };
   glLightfv(GL_LIGHT0, GL_POSITION, light_position);
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
+}
 
+void myDisplay() {
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  
   glLoadIdentity();
   glTranslatef(points.at(counter).x(), points.at(counter).y(), points.at(counter).z());
-  glutSolidSphere(0.05,70,10);
+  glutSolidSphere(0.1,70,10);
 
-  counter += 1;
+  counter += 5;
   if (counter >= points.size()) {
     counter = 0;
   }
@@ -62,7 +71,8 @@ int main( int argc, char** argv )
 	glutInitWindowPosition( 0, 0 );
   glutInitWindowSize( 600, 600 );
   glutCreateWindow( "Window 1" );
-	
+	 
+  init();
   getPoints();
   //glutKeyboardFunc( KeyPressFunc );
 	//glutSpecialFunc( SpecialKeyFunc );
@@ -70,6 +80,6 @@ int main( int argc, char** argv )
 	//glutReshapeFunc( ResizeWindow );
   glutDisplayFunc(myDisplay);
 	
-	glutMainLoop(  );
+	glutMainLoop();
   return(0);
 }
