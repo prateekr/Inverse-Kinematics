@@ -14,8 +14,8 @@ STD = c++11
 RM = /bin/rm -f 
 all:main
 
-main: main.o
-	$(CC) $(CFLAGS) -o $@ main.o $(LDFLAGS) 
+main: main.o arm.o
+	$(CC) $(CFLAGS) -o $@ main.o arm.o $(LDFLAGS) 
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
