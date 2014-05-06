@@ -20,7 +20,8 @@
 
 #define NUM_ARMS 1
 #define STEP_SIZE 0.01
-#define ERROR_MARGIN 0.01
+#define ERROR_MARGIN 0.001
+#define ZERO_MARGIN 0.00000000001
 
 using namespace Eigen;
 using namespace std;
@@ -145,12 +146,14 @@ void updateJacobian(Vector3f localP) {
 }
 
 void updateArms(Vector3f p, Vector3f dp) {
-  int count = 5;
-  while ((count >= 0) && (ERROR_MARGIN < (p - arms[0].getPoint()).norm())) {
+  int count = 1;
+  while ((count > 0) && (ERROR_MARGIN < (p - arms[0].getPoint()).norm())) {
     cout << "====\n";
     cout << arms[0].getPoint() << endl;
     cout << "====\n";
-
+    cout << (p - arms[0].getPoint()) << endl;
+    cout << "====\n";
+    
     Vector3f localP = getLocalP(p);
     updateRs();
     updateXs();
@@ -162,28 +165,41 @@ void updateArms(Vector3f p, Vector3f dp) {
       jacobian.block(0,i*3,3,3) = Js[i];
     }
 
+    // cout << jacobian << endl;
+
     // Get the pseudo-inverse
     Matrix<float, 3, NUM_ARMS * 3> jacobian_inverse;
     JacobiSVD<MatrixXf> svd(jacobian, ComputeThinU | ComputeThinV);
 
     VectorXf s_vals = svd.singularValues();
     for (int i = 0; i < s_vals.size(); i++) {
-      if (s_vals(i) != 0) {
+      if (abs(s_vals(i)) > ZERO_MARGIN) {
         s_vals(i) = 1 / s_vals(i);
+      }
+      else {
+        s_vals(i) = 0;
       }
     }
     MatrixXf d = DiagonalMatrix<float, Dynamic, Dynamic>(s_vals);
+    // cout << d << endl;
     jacobian_inverse = svd.matrixV() * d * svd.matrixU().transpose();
+
+    // cout << svd.matrixV() << endl;
+    // cout << svd.matrixU() << endl;
+    // cout << svd.singularValues() << endl;
+
+    // cout << jacobian_inverse << endl;
 
     Matrix<float, NUM_ARMS * 3, 1> dd;
     dd = jacobian_inverse * (p - arms[0].getPoint());
 
     // Hard coded in to a single arm
     arms[0].addToR(STEP_SIZE * dd);
+    
     // cout << dd << endl;
     // cout << jacobian << endl;
     // cout << getAngleAxis(arms[0].R_body_to_world) * arms[0].length << endl;
-    count--;
+    // count--;
   }
 }
 
