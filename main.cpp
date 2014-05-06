@@ -19,6 +19,8 @@
 #endif
 
 #define NUM_ARMS 1
+#define STEP_SIZE 0.01
+#define ERROR_MARGIN 0.01
 
 using namespace Eigen;
 using namespace std;
@@ -32,29 +34,33 @@ vector<Affine3f> Xs; // transformations determined from the previous arms
 vector<Matrix3f> Js; // Jacobians for each corresponding arm
 
 void init() {
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glOrtho(-1, 1, -1, 1, -100, 100);
+  // glMatrixMode(GL_PROJECTION);
+  // glLoadIdentity();
+  // glOrtho(-1, 1, -1, 1, -100, 100);
 
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
+  // glMatrixMode(GL_MODELVIEW);
+  // glLoadIdentity();
 
-  GLfloat light_position[] = { 1.0, 1.0, -1.0, 0.0 };
-  glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-  glEnable(GL_LIGHTING);
-  glEnable(GL_LIGHT0);
+  // GLfloat light_position[] = { 1.0, 1.0, -1.0, 0.0 };
+  // glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+  // glEnable(GL_LIGHTING);
+  // glEnable(GL_LIGHT0);
 
   // Initialize the data structures for the arms
   // Simple case with 1 arm
+  // arms = new vector<Arm>();
+  // Rs = new vector<Affine3f>();
+  // Xs = new vector<Affine3f>();
+  // Js = new vector<Matrix3f>();
   Rs.push_back(Affine3f::Identity());
-  Affine3f tmp;
-  Xs.push_back(tmp);
-  Matrix3f tmp2;
+  Xs.push_back(Affine3f::Identity());
+  Matrix3f tmp2 = Matrix3f::Zero();
   Js.push_back(tmp2);
 
-  arms.push_back(Arm(Vector3f(0,0,0), Vector3f(0,0,0), 50));
+  arms.push_back(Arm(Vector3f(0,0,0), Vector3f(0,0,0), 10));
+
 }
 
 void myDisplay() {
@@ -87,10 +93,14 @@ void getPoints() {
 // Inverse Kinematics
 //****************************************************
 
-Matrix3f getAngleAxis(Vector3f v) {
-float mag = v.norm(); 
+Affine3f getAngleAxis(Vector3f v) {
+  if (v == Vector3f(0,0,0)) {
+    return Affine3f::Identity();
+  }
+
+  float mag = v.norm(); 
   v.normalize();
-  return (Matrix3f) AngleAxisf(mag, v);
+  return (Affine3f) AngleAxisf(mag, v);
 }
 
 Matrix3f getCrossProductMatrix(Vector3f v) {
@@ -134,10 +144,46 @@ void updateJacobian(Vector3f localP) {
   }
 }
 
-void getJacobian() {
-  Matrix<float, 3, NUM_ARMS * 3> m;
-  for (int i = (Js.size() - 1); i >= 0; i--) {
-    m.block(0,i*3,3,3) = Js[i]; 
+void updateArms(Vector3f p, Vector3f dp) {
+  int count = 5;
+  while ((count >= 0) && (ERROR_MARGIN < (p - arms[0].getPoint()).norm())) {
+    cout << "====\n";
+    cout << arms[0].getPoint() << endl;
+    cout << "====\n";
+
+    Vector3f localP = getLocalP(p);
+    updateRs();
+    updateXs();
+    updateJacobian(localP);
+
+    // Generate and get the jacobian
+    Matrix<float, 3, NUM_ARMS * 3> jacobian;
+    for (int i = (Js.size() - 1); i >= 0; i--) {
+      jacobian.block(0,i*3,3,3) = Js[i];
+    }
+
+    // Get the pseudo-inverse
+    Matrix<float, 3, NUM_ARMS * 3> jacobian_inverse;
+    JacobiSVD<MatrixXf> svd(jacobian, ComputeThinU | ComputeThinV);
+
+    VectorXf s_vals = svd.singularValues();
+    for (int i = 0; i < s_vals.size(); i++) {
+      if (s_vals(i) != 0) {
+        s_vals(i) = 1 / s_vals(i);
+      }
+    }
+    MatrixXf d = DiagonalMatrix<float, Dynamic, Dynamic>(s_vals);
+    jacobian_inverse = svd.matrixV() * d * svd.matrixU().transpose();
+
+    Matrix<float, NUM_ARMS * 3, 1> dd;
+    dd = jacobian_inverse * (p - arms[0].getPoint());
+
+    // Hard coded in to a single arm
+    arms[0].addToR(STEP_SIZE * dd);
+    // cout << dd << endl;
+    // cout << jacobian << endl;
+    // cout << getAngleAxis(arms[0].R_body_to_world) * arms[0].length << endl;
+    count--;
   }
 }
 
@@ -150,7 +196,7 @@ int main( int argc, char** argv )
  //  glutInitWindowSize( 600, 600 );
  //  glutCreateWindow( "Window 1" );
 	 
- //  init();
+  init();
  //  getPoints();
  //  //glutKeyboardFunc( KeyPressFunc );
 	// //glutSpecialFunc( SpecialKeyFunc );
@@ -159,6 +205,8 @@ int main( int argc, char** argv )
  //  glutDisplayFunc(myDisplay);
 	
 	// glutMainLoop();
+
+  updateArms(Vector3f(1, 9.94987, 0), Vector3f(1, -0.050125, 0));
 
   // Vector3f a(2,2,0);
   // Vector3f b(1,0,0);
@@ -170,15 +218,37 @@ int main( int argc, char** argv )
   // m = aa;
   // m2 = m * tt;
 
+  // cout << m2.affine() << endl;
+  // cout << m2 * b << endl;
+
+  // Matrix3f a;
+  // a << 1,2,3,4,5,6,7,8,9;
+  // Matrix<float, 3, 6> m;
+
+  // m.block(0,0,3,3) = a;
   // cout << m << endl;
-  // cout << m * tt * b << endl;
 
-  Matrix3f a;
-  a << 1,2,3,4,5,6,7,8,9;
-  Matrix<float, 3, 6> m;
-
-  m.block(0,0,3,3) = a;
-  cout << m << endl;
+  // Matrix3f a = Matrix3f::Random(3,3);
+  // JacobiSVD<MatrixXf> svd(a, ComputeThinU | ComputeThinV);
+  // // cout << svd.matrixU() << endl;
+  // // cout << svd.matrixV() << endl;
+  // Matrix3f x = Matrix3f::Identity(3,3);
+  // Vector3f tmp = svd.singularValues();
+  // // MatrixXf t = x * svd.singularValues();
+  // cout << tmp << endl;  
+  // for (int i = 0; i < tmp.size(); i++) {
+  //   if (tmp(i) != 0) {
+  //     tmp(i) = 1 / tmp(i);
+  //   }
+  // }
+  // cout << tmp << endl;
+  // MatrixXf d = DiagonalMatrix<float, Dynamic, Dynamic>(tmp);
+  // cout << d << endl;
+  
+  // cout << svd.matrixV() * d * svd.matrixU().transpose() << endl;
+  // cout << 1 / (svd.singularValues()) << endl;
+  
+  
   
   return(0);
 }
