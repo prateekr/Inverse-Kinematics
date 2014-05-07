@@ -17,10 +17,15 @@ void Arm::addToR(Vector3f r) {
 }
 
 Vector3f Arm::getPoint() {
-  return getAngleAxis(R_body_to_world) * length;
+  return Translation3f(X_body_to_world) * getAngleAxis(R_body_to_world) * length;
 }
 void Arm::drawArm() {
-  // doesn't do anything yet
+  // glBegin(GL_LINES);
+  // glVertex3f(0.0, 0.0, 0.0);
+  // glVertex3f(length.x(), length.y(), length.z());
+  // glEnd();
+
+  // glRotatef(R_body_to_world.norm(), R_body_to_world.x(), R_body_to_world.y(), R_body_to_world.z());
 }
 
 Affine3f Arm::getAngleAxis(Vector3f v) {

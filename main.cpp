@@ -18,10 +18,10 @@
 #include <GL/glu.h>
 #endif
 
-#define NUM_ARMS 1
+#define NUM_ARMS 2
 #define STEP_SIZE 0.01
-#define ERROR_MARGIN 0.001
-#define ZERO_MARGIN 0.00000000001
+#define ERROR_MARGIN 0.1
+#define ZERO_MARGIN 0.00001
 
 using namespace Eigen;
 using namespace std;
@@ -56,12 +56,17 @@ void init() {
   // Xs = new vector<Affine3f>();
   // Js = new vector<Matrix3f>();
   Rs.push_back(Affine3f::Identity());
+  Rs.push_back(Affine3f::Identity());
+
   Xs.push_back(Affine3f::Identity());
+  Xs.push_back(Affine3f::Identity());
+  
   Matrix3f tmp2 = Matrix3f::Zero();
+  Js.push_back(tmp2);
   Js.push_back(tmp2);
 
   arms.push_back(Arm(Vector3f(0,0,0), Vector3f(0,0,0), 10));
-
+  arms.push_back(Arm(Vector3f(0,10,0), Vector3f(0,0,0), 5));
 }
 
 void myDisplay() {
@@ -132,7 +137,7 @@ void updateXs() {
   Affine3f m;
   for (int i = (Xs.size() - 2); i >= 0; i--) {
     m = Matrix3f::Identity(3,3);
-    for (int j = i; j < (arms.size() - 1); j++) {
+    for (int j = i; j < arms.size(); j++) {
       m = m * Translation3f(arms[j].X_body_to_world);
     }
     Xs[i] = m;
@@ -140,18 +145,21 @@ void updateXs() {
 }
 
 void updateJacobian(Vector3f localP) {
+  // cout << "-------" << endl;
   for (int i = 0; i < Js.size(); i++) {
+    // cout << Rs[i].affine() << endl;   
     Js[i] = Rs[i] * getCrossProductMatrix(-(Xs[i] * localP));
   }
 }
 
-void updateArms(Vector3f p, Vector3f dp) {
-  int count = 1;
-  while ((count > 0) && (ERROR_MARGIN < (p - arms[0].getPoint()).norm())) {
-    cout << "====\n";
-    cout << arms[0].getPoint() << endl;
-    cout << "====\n";
-    cout << (p - arms[0].getPoint()) << endl;
+void updateArms(Vector3f p) {
+  int count = 10;
+
+  while ((count > 0) && (ERROR_MARGIN < (p - arms[arms.size() - 1].getPoint()).norm())) {
+    cout << "====" << count << endl;
+    cout << arms[arms.size() - 1].getPoint() << endl;
+    // cout << "====\n";
+    // cout << (p - arms[0].getPoint()) << endl;
     cout << "====\n";
     
     Vector3f localP = getLocalP(p);
@@ -168,10 +176,12 @@ void updateArms(Vector3f p, Vector3f dp) {
     // cout << jacobian << endl;
 
     // Get the pseudo-inverse
-    Matrix<float, 3, NUM_ARMS * 3> jacobian_inverse;
+    Matrix<float, NUM_ARMS * 3, 3> jacobian_inverse;
     JacobiSVD<MatrixXf> svd(jacobian, ComputeThinU | ComputeThinV);
 
     VectorXf s_vals = svd.singularValues();
+    // cout << s_vals << endl;
+
     for (int i = 0; i < s_vals.size(); i++) {
       if (abs(s_vals(i)) > ZERO_MARGIN) {
         s_vals(i) = 1 / s_vals(i);
@@ -180,26 +190,29 @@ void updateArms(Vector3f p, Vector3f dp) {
         s_vals(i) = 0;
       }
     }
+
+    cout << jacobian << endl;
+    // cout << s_vals << endl;
+
     MatrixXf d = DiagonalMatrix<float, Dynamic, Dynamic>(s_vals);
-    // cout << d << endl;
-    jacobian_inverse = svd.matrixV() * d * svd.matrixU().transpose();
 
     // cout << svd.matrixV() << endl;
     // cout << svd.matrixU() << endl;
-    // cout << svd.singularValues() << endl;
+    // cout << d << endl;
 
-    // cout << jacobian_inverse << endl;
+    jacobian_inverse = svd.matrixV() * d * svd.matrixU().transpose();
+
+    cout << jacobian_inverse << endl;
 
     Matrix<float, NUM_ARMS * 3, 1> dd;
-    dd = jacobian_inverse * (p - arms[0].getPoint());
+    dd = jacobian_inverse * (p - arms[arms.size() - 1].getPoint());
 
-    // Hard coded in to a single arm
-    arms[0].addToR(STEP_SIZE * dd);
-    
     // cout << dd << endl;
-    // cout << jacobian << endl;
-    // cout << getAngleAxis(arms[0].R_body_to_world) * arms[0].length << endl;
-    // count--;
+    for (int i = 0; i < arms.size(); i++) {
+      arms[i].addToR(STEP_SIZE * Vector3f(dd[i*3], dd[(i*3)+1], dd[(i*3)+2]));
+    }
+    
+    count--;
   }
 }
 
@@ -222,7 +235,7 @@ int main( int argc, char** argv )
 	
 	// glutMainLoop();
 
-  updateArms(Vector3f(1, 9.94987, 0), Vector3f(1, -0.050125, 0));
+  updateArms(Vector3f(1, 14.5, 0));
 
   // Vector3f a(2,2,0);
   // Vector3f b(1,0,0);
