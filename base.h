@@ -38,6 +38,7 @@ class Arm {
     std::vector<Link> *links;
     Point origin, curr_position;
     float width;
+    float total_length;
 
     Arm() { }
 
@@ -46,9 +47,11 @@ class Arm {
       origin = o;
       width = w;
 
+      total_length = 0;
       curr_position = o;
       for (int i = 0; i < link_list->size(); i++) {
         curr_position(1) += link_list->at(i).length;
+        total_length += link_list->at(i).length;
       }
     }
 
@@ -83,7 +86,6 @@ class Arm {
 
     MatrixXf getSvDPeudoInverse(Vector3f error) {
       MatrixXf jacobian = getJacobian();
-      std::cout << jacobian << std::endl;
       Eigen::JacobiSVD<MatrixXf> svd (jacobian,ComputeThinU | ComputeThinV);
       
       //return svd.solve(Vector2f(error.x(), error.y()));
@@ -91,6 +93,10 @@ class Arm {
     }
 
     void drawPolygon(Point goal) {
+      if ((goal - origin).norm() > total_length) {
+        goal = goal * total_length/goal.norm();
+      }
+      
       Vector3f error = goal - curr_position;
       MatrixXf matrix = getSvDPeudoInverse(error);
 
