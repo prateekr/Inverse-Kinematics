@@ -61,13 +61,13 @@ void myDisplay() {
   glBegin(GL_LINES);
   glColor3f (0.0, 1.0, 0.0); // Green for x axis
   glVertex3f(0,0,0);
-  glVertex3f(1,0,0);
+  glVertex3f(1.75,0,0);
   glColor3f(1.0,0.0,0.0); // Red for y axis
   glVertex3f(0,0,0);
-  glVertex3f(0,1,0);
+  glVertex3f(0,1.75,0);
   glColor3f(0.0,0.0,1.0); // Blue for z axis
   glVertex3f(0,0,0); 
-  glVertex3f(0,0,1);
+  glVertex3f(0,0,1.75);
   glEnd();
 
   glPushMatrix();
@@ -110,12 +110,26 @@ void myDisplay() {
 }
 
 void getPoints() {
+  /*
   float a = sin(3.14159/2);
   for (float i = 0; i <= 2*3.14159; i+=0.005) {
     float y = 0.75 * cos(i + 90 * PI/180);
     float z = 0.75 * sin(i + 90 * PI/180);
     points.push_back(Vector3f(0,y,z));
   }
+  */
+  Point p1 = Point(1,1,-1), p2 = Point(0,0,1.5), p3 = Point(-1,-1,-1);
+  float increment = 0.005;
+  for (float i = 0; i <= 1 + increment/2; i+=increment) {
+    points.push_back(p1 + i * (p2 - p1));
+  }
+  for (float i = 0; i <= 1 + increment/2; i+=increment) {
+    points.push_back(p2 + i * (p3 - p2));
+  }
+  for (float i = 0; i <= 1 + increment/2; i+=increment) {
+    points.push_back(p3 + i * (p1 - p3));
+  }
+
 }
 
 int main( int argc, char** argv )
@@ -131,8 +145,8 @@ int main( int argc, char** argv )
   getPoints();
   
   std::vector<Link> links;
-  links.push_back(Link(0.4));
-  links.push_back(Link(0.4));
+  links.push_back(Link(0.875));
+  links.push_back(Link(0.875));
   arm = Arm(Point(0,0,0), &links, 0.05);
   prev_point = points.at(counter);
   counter = 1;

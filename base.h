@@ -93,7 +93,6 @@ class Arm {
     void drawPolygon(Point goal) {
       Vector3f error = goal - curr_position;
       MatrixXf matrix = getSvDPeudoInverse(error);
-      std::cout << matrix << std::endl;
 
       Point location = origin;
       float theta = 0, phi = 0;
