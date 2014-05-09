@@ -19,8 +19,8 @@
 #endif
 
 #define NUM_ARMS 2
-#define STEP_SIZE 0.01
-#define ERROR_MARGIN 0.1
+#define STEP_SIZE 0.001
+#define ERROR_MARGIN 0.5
 #define ZERO_MARGIN 0.00001
 
 using namespace Eigen;
@@ -65,8 +65,13 @@ void init() {
   Js.push_back(tmp2);
   Js.push_back(tmp2);
 
-  arms.push_back(Arm(Vector3f(0,0,0), Vector3f(0,0,0), 10));
-  arms.push_back(Arm(Vector3f(0,10,0), Vector3f(0,0,0), 5));
+  vector<Arm> v;
+  Arm a = Arm(Vector3f(0,0,0), Vector3f(0,0,0), 10, v);
+  arms.push_back(a);
+  v.push_back(a);
+
+  Arm b = Arm(Vector3f(0,10,0), Vector3f(0,0,0), 5, v);
+  arms.push_back(b);
 }
 
 void myDisplay() {
@@ -118,7 +123,7 @@ Matrix3f getCrossProductMatrix(Vector3f v) {
 // Given world coordinate of p, get local p with respect to the number of arms
 Vector3f getLocalP(Vector3f p) {
   Affine3f m = Affine3f::Identity();
-  for (int i = (arms.size() - 2); i >= 0; i--) {
+  for (int i = 0; i < arms.size(); i++) {
     m = m * getAngleAxis(arms[i].R_world_to_body) * Translation3f(arms[i].X_world_to_body);
   }
   return m * p;
@@ -128,7 +133,11 @@ void updateRs() {
   // By default, the first entry of Rs is the identity
   Affine3f m;
   for (int i = 1; i < Rs.size(); i++) {
-    m = Rs[i-1] * getAngleAxis(arms[i-1].R_body_to_world);
+    m = Affine3f::Identity();
+    for (int j = 0; j < i; j++) {
+      m = m * getAngleAxis(arms[j].R_body_to_world);
+    }
+    // m = Rs[i-1] * getAngleAxis(arms[i-1].R_body_to_world);
     Rs[i] = m;
   }
 }
@@ -137,7 +146,7 @@ void updateXs() {
   Affine3f m;
   for (int i = (Xs.size() - 2); i >= 0; i--) {
     m = Matrix3f::Identity(3,3);
-    for (int j = i; j < arms.size(); j++) {
+    for (int j = (i + 1); j < arms.size(); j++) {
       m = m * Translation3f(arms[j].X_body_to_world);
     }
     Xs[i] = m;
@@ -153,14 +162,13 @@ void updateJacobian(Vector3f localP) {
 }
 
 void updateArms(Vector3f p) {
-  int count = 10;
+  int count = 10000;
 
-  while ((count > 0) && (ERROR_MARGIN < (p - arms[arms.size() - 1].getPoint()).norm())) {
-    cout << "====" << count << endl;
-    cout << arms[arms.size() - 1].getPoint() << endl;
+  while ((count > 0) && (ERROR_MARGIN < (p - arms[arms.size() - 1].getEndPoint()).norm())) {
+    // cout << "====" << count << endl;
     // cout << "====\n";
-    // cout << (p - arms[0].getPoint()) << endl;
-    cout << "====\n";
+    // cout << (p - arms[0].getEndPoint()) << endl;
+    // cout << "====\n";
     
     Vector3f localP = getLocalP(p);
     updateRs();
@@ -191,7 +199,7 @@ void updateArms(Vector3f p) {
       }
     }
 
-    cout << jacobian << endl;
+    // cout << jacobian << endl;
     // cout << s_vals << endl;
 
     MatrixXf d = DiagonalMatrix<float, Dynamic, Dynamic>(s_vals);
@@ -202,17 +210,24 @@ void updateArms(Vector3f p) {
 
     jacobian_inverse = svd.matrixV() * d * svd.matrixU().transpose();
 
-    cout << jacobian_inverse << endl;
+    // cout << jacobian_inverse << endl;
 
     Matrix<float, NUM_ARMS * 3, 1> dd;
-    dd = jacobian_inverse * (p - arms[arms.size() - 1].getPoint());
+    dd = jacobian_inverse * (p - arms[arms.size() - 1].getEndPoint());
 
     // cout << dd << endl;
-    for (int i = 0; i < arms.size(); i++) {
-      arms[i].addToR(STEP_SIZE * Vector3f(dd[i*3], dd[(i*3)+1], dd[(i*3)+2]));
+    for (int i = (arms.size() - 1); i >= 0; i--) {
+      int j = arms.size() - i - 1;
+      arms[i].addToR(STEP_SIZE * Vector3f(dd[j*3], dd[(j*3)+1], dd[(j*3)+2]));
     }
     
     count--;
+  }
+
+  cout << "========" << endl;
+  for (int i = 0; i < arms.size(); i++) {
+    cout << arms[i].getEndPoint() << endl;
+    cout << "---" << endl;
   }
 }
 
@@ -236,7 +251,11 @@ int main( int argc, char** argv )
 	// glutMainLoop();
 
   updateArms(Vector3f(1, 14.5, 0));
-
+  // cout << "movement 1" << endl;
+  // updateArms(Vector3f(1.5, 13.50, 0));
+  // cout << "movement 2" << endl;
+  // updateArms(Vector3f(1.75, 12, 0));
+  
   // Vector3f a(2,2,0);
   // Vector3f b(1,0,0);
   // // cout << a*b.transpose() << endl;
@@ -276,8 +295,6 @@ int main( int argc, char** argv )
   
   // cout << svd.matrixV() * d * svd.matrixU().transpose() << endl;
   // cout << 1 / (svd.singularValues()) << endl;
-  
-  
   
   return(0);
 }

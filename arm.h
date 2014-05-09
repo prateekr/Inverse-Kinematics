@@ -1,10 +1,12 @@
 #ifndef ARM_H
 #define ARM_H
 
+#include <vector>
 #include "Eigen/Dense"
 #include "Eigen/Geometry"
 
 using namespace Eigen;
+using namespace std;
 
 class Arm {
   public:
@@ -18,12 +20,16 @@ class Arm {
     // assume length goes upward in y-axis from location of the arm
     Vector3f length;
 
+    // Stores all the previous arms
+    vector<Arm> prev_arms;
+
     Arm() { }
-    Arm(Vector3f x, Vector3f r, float l);
+    Arm(Vector3f x, Vector3f r, float l, vector<Arm> prev_arms_arg);
 
     void drawArm();
     void addToR(Vector3f r);
-    Vector3f getPoint(); // point that this arm is at
+    Vector3f getEndPoint(); // point that this arm is at
+    Affine3f getLocalTransformation(); // Get the transformation that will put this arm in local perspective.
 
   private:
     Affine3f getAngleAxis(Vector3f v);
