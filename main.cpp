@@ -138,7 +138,7 @@ void getPoints() {
   }
 
   for (float i = 0; i <= 2 * PI + increment/1; i+=increment) {
-    Point p = Point(0, -1.4 * cos(i), 2.0f * sin(i));
+    Point p = Point(0, -1.4 * cos(i), 1.65f * sin(i));
     points.push_back(p);
   }
 
