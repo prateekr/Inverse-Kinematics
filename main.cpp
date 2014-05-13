@@ -59,6 +59,7 @@ void myDisplay() {
   // Draw the positive side of the lines x,y,z
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glBegin(GL_LINES);
+  /*
   glColor3f (0.0, 1.0, 0.0); // Green for x axis
   glVertex3f(0,0,0);
   glVertex3f(1.75,0,0);
@@ -69,13 +70,24 @@ void myDisplay() {
   glVertex3f(0,0,0); 
   glVertex3f(0,0,1.75);
   glEnd();
+  */
+  glColor3f(0.5, 0.5, 0.5);
+  for (int i = 1; i < points.size(); i++) {
+    glVertex3f(points.at(i-1).x(), points.at(i-1).y(), points.at(i-1).z());
+    glVertex3f(points.at(i).x(), points.at(i).y(), points.at(i).z());
+  }
+  glEnd();
+  
+  glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
   glPushMatrix();
   glTranslatef(points.at(counter).x(), points.at(counter).y(), points.at(counter).z());
+  glColor3f(1.0f, 1.0f, 1.0f);
   glutSolidSphere(0.05,70,10);
   glPopMatrix();
 
-
+  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+  glColor3f(0.0,0.1,0.9);
   arm.drawPolygon(points.at(counter));
   prev_point = points.at(counter);
 
@@ -120,6 +132,22 @@ void getPoints() {
   */
   Point p1 = Point(1,1,-1), p2 = Point(0,0,1.5), p3 = Point(-1,-1,-1);
   float increment = 0.005;
+  for (float i = 0; i <= PI + increment/1; i+=increment) {
+    Point p = Point(-1.4 * sin(i), 1.4 * cos(i), 0);
+    points.push_back(p);
+  }
+
+  for (float i = 0; i <= 2 * PI + increment/1; i+=increment) {
+    Point p = Point(0, -1.4 * cos(i), 2.0f * sin(i));
+    points.push_back(p);
+  }
+
+  for (float i = 0; i <= PI + increment/1; i+=increment) {
+    Point p = Point(1.4 * sin(i), -1.4 * cos(i), 0);
+    points.push_back(p);
+  }
+
+  /*
   for (float i = 0; i <= 1 + increment/2; i+=increment) {
     points.push_back(p1 + i * (p2 - p1));
   }
@@ -129,7 +157,7 @@ void getPoints() {
   for (float i = 0; i <= 1 + increment/2; i+=increment) {
     points.push_back(p3 + i * (p1 - p3));
   }
-
+  */
 }
 
 int main( int argc, char** argv )
@@ -138,15 +166,18 @@ int main( int argc, char** argv )
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH );
 
 	glutInitWindowPosition( 0, 0 );
-  glutInitWindowSize( 600, 600 );
+  glutInitWindowSize( 1980, 1080 );
   glutCreateWindow( "Window 1" );
 	 
   init();
   getPoints();
   
   std::vector<Link> links;
-  links.push_back(Link(0.875));
-  links.push_back(Link(0.875));
+  links.push_back(Link(0.258621f * 2.0f));
+  links.push_back(Link(0.258621f * 1.2f));
+  links.push_back(Link(0.258621f * 1.6f));
+  links.push_back(Link(0.258621f));
+
   arm = Arm(Point(0,0,0), &links, 0.05);
   prev_point = points.at(counter);
   counter = 1;

@@ -93,8 +93,8 @@ class Arm {
     }
 
     void drawPolygon(Point goal) {
-      if ((goal - origin).norm() > total_length) {
-        goal = goal * total_length/goal.norm();
+      if ((goal - origin).norm() > total_length - 0.0005) {
+        goal = goal * (total_length)/goal.norm();
       }
       
       Vector3f error = goal - curr_position;
@@ -112,7 +112,12 @@ class Arm {
         Point top_origin = Point(location.x() - width * cos(theta), location.y() + width * sin(theta), location.z());
         Point bottom_origin = Point(location.x() + width * cos(theta), location.y() - width * sin(theta), location.z());
  
-        glBegin(GL_POLYGON);
+        glPushMatrix();
+        glTranslatef(location.x(), location.y(), location.z());
+        glutSolidSphere(width,30,10);
+        glPopMatrix();
+
+        glBegin(GL_TRIANGLES);
         glVertex3f(top_origin.x(), top_origin.y(), top_origin.z());
         glVertex3f(bottom_origin.x(), bottom_origin.y(), bottom_origin.z());
         glVertex3f(end_point.x(), end_point.y(), end_point.z());
