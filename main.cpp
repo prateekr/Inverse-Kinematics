@@ -32,16 +32,20 @@ GLUquadric* qobj;
 
 void init() {
   glClearColor(0,0,0,0);
-  qobj = gluNewQuadric();
-  gluQuadricNormals(qobj, GLU_SMOOTH);
+  // qobj = gluNewQuadric();
+  // gluQuadricNormals(qobj, GLU_SMOOTH);
 
-  /*
-  GLfloat light_position[] = { 1.0, 1.0, -20.0, 1.0 };
-  glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-  glEnable(GL_LIGHTING);
-  glEnable(GL_LIGHT0);
-  */
-  
+  // GLfloat light_position[] = { 1.0, 1.0, -20.0, 1.0 };
+  // glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+
+  // GLfloat light_position1[] = { 1.0, 1.0, 20.0, 1.0 };
+  // glLightfv(GL_LIGHT1, GL_POSITION, light_position1);
+
+  // glEnable(GL_DEPTH_TEST);
+  // glEnable(GL_LIGHTING);
+  // glEnable(GL_LIGHT0);
+  // glEnable(GL_LIGHT1);
+
 }
 
 void myReshape(int w, int h) {
@@ -59,7 +63,6 @@ void myDisplay() {
   // Draw the positive side of the lines x,y,z
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glBegin(GL_LINES);
-  /*
   glColor3f (0.0, 1.0, 0.0); // Green for x axis
   glVertex3f(0,0,0);
   glVertex3f(1.75,0,0);
@@ -70,15 +73,17 @@ void myDisplay() {
   glVertex3f(0,0,0); 
   glVertex3f(0,0,1.75);
   glEnd();
-  */
-  glColor3f(0.5, 0.5, 0.5);
+
+  glBegin(GL_POINTS);
+  glColor3f(0.5, 0.5, 0.5); 
   for (int i = 1; i < points.size(); i++) {
     glVertex3f(points.at(i-1).x(), points.at(i-1).y(), points.at(i-1).z());
     glVertex3f(points.at(i).x(), points.at(i).y(), points.at(i).z());
   }
   glEnd();
-  
+
   glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+  glShadeModel(GL_FLAT);
 
   glPushMatrix();
   glTranslatef(points.at(counter).x(), points.at(counter).y(), points.at(counter).z());
@@ -86,7 +91,7 @@ void myDisplay() {
   glutSolidSphere(0.05,70,10);
   glPopMatrix();
 
-  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+  // glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
   glColor3f(0.0,0.1,0.9);
   arm.drawPolygon(points.at(counter));
   prev_point = points.at(counter);
@@ -181,8 +186,6 @@ int main( int argc, char** argv )
   arm = Arm(Point(0,0,0), &links, 0.05);
   prev_point = points.at(counter);
   counter = 1;
-  //glutKeyboardFunc( KeyPressFunc );
-	//glutSpecialFunc( SpecialKeyFunc );
 
 	glutReshapeFunc(myReshape );
   glutDisplayFunc(myDisplay);

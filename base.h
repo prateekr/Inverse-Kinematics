@@ -15,7 +15,7 @@
 #include <GL/glu.h>
 #endif
 
-#include "Eigen\Dense"
+#include "Eigen/Dense"
 
 using namespace Eigen;
 
@@ -109,19 +109,115 @@ class Arm {
         theta += links->at(i).current_theta, phi += links->at(i).current_phi;
 
         Point end_point = Point(location.x() + length * cos(phi) * sin(theta), location.y() + length * cos(phi) * cos(theta), location.z() + length * sin(phi));
-        Point top_origin = Point(location.x() - width * cos(theta), location.y() + width * sin(theta), location.z());
-        Point bottom_origin = Point(location.x() + width * cos(theta), location.y() - width * sin(theta), location.z());
- 
+        // Point top_origin = Point(location.x() - width * cos(theta), location.y() + width * sin(theta), location.z());
+        // Point bottom_origin = Point(location.x() + width * cos(theta), location.y() - width * sin(theta), location.z());
+        Point A = Point(location.x() - width * cos(theta), location.y() + width * sin(theta), location.z());
+        Point C = Point(location.x() + width * cos(theta), location.y() - width * sin(theta), location.z());
+
+        Vector3f diff = A - C;
+        float d = diff.cwiseAbs().sum();
+        Point D = Point(location.x(), location.y(), location.z() - (d / 2));
+        Point B = Point(location.x(), location.y(), location.z() + (d / 2));
+
         glPushMatrix();
+        glColor3f(0.5f, 0.0f, 0.5f);
         glTranslatef(location.x(), location.y(), location.z());
         glutSolidSphere(width,30,10);
         glPopMatrix();
 
-        glBegin(GL_TRIANGLES);
-        glVertex3f(top_origin.x(), top_origin.y(), top_origin.z());
-        glVertex3f(bottom_origin.x(), bottom_origin.y(), bottom_origin.z());
-        glVertex3f(end_point.x(), end_point.y(), end_point.z());
+        // top_origin -  --  - - - - - end
+        //     |                      |
+        // bottom_origin - - - - - - (bottom_origin - location) + end
+
+        Point A_prime = (A - location) + end_point;
+        Point B_prime = (B - location) + end_point;
+        Point C_prime = (C - location) + end_point;
+        Point D_prime = (D - location) + end_point;
+
+        Vector3f n;
+
+        glPushMatrix();
+        glBegin(GL_QUADS);
+
+        glColor3f(0.5f, 0.5f, 0.0f);
+        // Bottom face
+        n = (D - A).cross(B - A);
+        n.normalize();
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(D.x(), D.y(), D.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(C.x(), C.y(), C.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(B.x(), B.y(), B.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(A.x(), A.y(), A.z());
+
+        // Top face
+        n = (B_prime - A_prime).cross(D_prime - A_prime);
+        n.normalize();
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(A_prime.x(), A_prime.y(), A_prime.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(B_prime.x(), B_prime.y(), B_prime.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(C_prime.x(), C_prime.y(), C_prime.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(D_prime.x(), D_prime.y(), D_prime.z());
+
+        // Long faces
+        n = (B - A).cross(A_prime - A);
+        n.normalize();
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(A.x(), A.y(), A.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(A_prime.x(), A_prime.y(), A_prime.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(B_prime.x(), B_prime.y(), B_prime.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(B.x(), B.y(), B.z());
+        
+
+        n = (C - B).cross(B_prime - B);
+        n.normalize();
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(B.x(), B.y(), B.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(B_prime.x(), B_prime.y(), B_prime.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(C_prime.x(), C_prime.y(), C_prime.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(C.x(), C.y(), C.z());
+        
+        n = (D - C).cross(C_prime - C);
+        n.normalize();
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(C.x(), C.y(), C.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(C_prime.x(), C_prime.y(), C_prime.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(D_prime.x(), D_prime.y(), D_prime.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(D.x(), D.y(), D.z());
+
+        n = (A - D).cross(D_prime - D);
+        n.normalize();
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(D.x(), D.y(), D.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(D_prime.x(), D_prime.y(), D_prime.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(A_prime.x(), A_prime.y(), A_prime.z());
+        glNormal3f(n.x(), n.y(), n.z());
+        glVertex3f(A.x(), A.y(), A.z());
+        
         glEnd();
+        glPopMatrix();
+
+        // glBegin(GL_TRIANGLES);
+        // glVertex3f(top_origin.x(), top_origin.y(), top_origin.z());
+        // glVertex3f(bottom_origin.x(), bottom_origin.y(), bottom_origin.z());
+        // glVertex3f(end_point.x(), end_point.y(), end_point.z());
+        // glEnd();
 
         location = end_point;
       }
