@@ -1,0 +1,12 @@
+Cong Chen cs184-ca SID: 21804180
+Prateek Reddy ccs184-bz, SID: 22158073
+
+Code runs on Mac OSX
+
+The source files are simply in this folder. To run, make it by the following command:
+
+make
+
+Then, run it. It is called main.
+
+./main
